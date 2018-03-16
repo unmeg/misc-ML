@@ -1,5 +1,7 @@
 """
-Looking at the diagram, we take an input that is 32x32x3 and we convolve, downsample
+Notes to self for http://pytorch.org/tutorials/beginner/blitz/neural_networks_tutorial.html
+
+Looking at the network diagram, we take an input that is 32x32x3 and we convolve, downsample
 and then spit it out into some fully connected layers.
 
 Let's unpack.
