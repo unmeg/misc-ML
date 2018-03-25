@@ -85,26 +85,125 @@ class FaceLandmarksDataset(Dataset):
         
         return sample
 
+# transforms
 
+class Rescale(object):
+    """
+    Rescale images in a data set to be a given size
+    
+    args:
+    output_size (tuple or int): If tuple, output is matched to output_size
+                                If int, given size will be = smallest imag edge
+    """
+
+    def __init__(self, output_size):
+        assert isinstance(output_size, (int, tuple))
+        self.output_size = output_size
+
+    def __call__(self, sample): # this is called when we Rescale()
+        image, landmarks = sample['image'], sample['landmarks']
+
+        h, w = image.shape[:2]
+        if isinstance(self.output_size, int):
+            if h > w: # this maintains aspect ratio
+                new_h, new_w = self.output_size * h / w, self.output_size
+            else: 
+                new_h, new_w = self.output_size, self.output_size * w / h    
+
+        new_h, new_w = int(new_h), int(new_w)
+
+        img = transform.resize(image, (new_h, new_w))
+
+        landmarks = landmarks * [new_w / w, new_h / h] # scaling landmark coords?
+
+        return {'image': img, 'landmarks': landmarks}
+
+class RandomCrop(object):
+    """
+    CROP RANDOMLY!
+
+    args: output_size (tuple or int): desired output size. if int, output will be square
+    """
+
+    def __init__(self, output_size):
+        assert isinstance(output_size, (int, tuple))
+        if isinstance(output_size, int):
+            self.output_size = (output_size, output_size)
+        else:
+            assert len(output_size) == 2
+            self.output_size = output_size
+
+    def __call__(self, sample):
+        image, landmarks = sample['image'], sample['landmarks']
+
+        h, w = image.shape[:2]
+        new_h, new_w = self.output_size
+
+        top = np.random.randint(0, h-new_h)
+        left = np.random.randint(0, w - new_w)
+
+        image = image[top: top + new_h, 
+                      left: left + new_w]
+              
+
+        landmarks = landmarks - [left, top]
+
+        return {'image': image, 'landmarks': landmarks}
+
+class ToTensor(object):
+    """ convert ndarrays in sample to Tensors"""
+    
+    def __call__(self, sample):
+        image, landmarks = sample['sample'], sample['landmarks']
+
+        # we have to swap the colour axis because 
+        # numpy image: H x W x C
+        # torch image: C x H x W
+
+        image = image.transpose((2, 0, 1))
+        return {'image': torch.from_numpy(image),
+                'landmarks': torch.from_numpy(landmarks)}
+
+    
 # instantiate the class and iterate through the data samples
 
 face_dataset = FaceLandmarksDataset(csv_file='faces/face_landmarks.csv',
                                     root_dir='faces/')
 
-fig = plt.figure()
+# fig = plt.figure()
 
-for i in range(len(face_dataset)):
-    sample = face_dataset[i]
+# for i in range(len(face_dataset)):
+#     sample = face_dataset[i]
 
-    print(i, sample['image'].shape, sample['landmarks'].shape)
+#     print(i, sample['image'].shape, sample['landmarks'].shape)
 
-    ax = plt.subplot(1, 4, i + 1)
-    plt.tight_layout()
-    # ax.set_title('Sample #{}').format(i)
-    ax.set_title('Whatevs!')
-    ax.axis('off')
-    show_landmarks(**sample) # basically treat the elements as entities rather than looking at the whole dict
+#     ax = plt.subplot(1, 4, i + 1)
+#     plt.tight_layout()
+#     # ax.set_title('Sample #{}').format(i)
+#     ax.set_title('Whatevs!')
+#     ax.axis('off')
+#     show_landmarks(**sample) # basically treat the elements as entities rather than looking at the whole dict
     
-    if i == 3:
-        plt.show()
-        break
+#     if i == 3:
+#         plt.show()
+#         break
+
+scale = Rescale(256)
+crop = RandomCrop(128)
+composed = transforms.Compose([Rescale(256),
+                               RandomCrop(224)])
+
+# do transforms
+
+fig = plt.figure()
+sample = face_dataset[65]
+
+for i, tsfrm in enumerate([scale, crop, composed]):
+    transform_sample = tsfrm(sample)
+
+    ax = plt.subplot(1, 3, i + 1)
+    plt.tight_layout()
+    ax.set_title(type(tsfrm).__name__)
+    show_landmarks(**transform_sample)
+    
+plt.show()
