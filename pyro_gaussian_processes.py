@@ -77,13 +77,16 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
             losses.append(loss.item())
-        plt.plot(losses);
+        plt.plot(losses)
+        plt.show()
+        plot(model=sgpr, plot_observed_data=True, plot_predictions=True)
     if model_type == 2:
         # the GP module has its own training loop management, not sure if better than/equal to custom
         num_steps = 2500
         losses = gp.util.train(vsgp, num_steps=num_steps)
         plt.plot(losses)
         plt.show()
+        plot(model=vsgp, plot_observed_data=True, plot_predictions=True)
     if model_type == 3:
         optimizer = torch.optim.Adam(vsgp.parameters(), lr=0.005)
         loss_fn = pyro.infer.Trace_ELBO().differentiable_loss
@@ -95,7 +98,6 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
             losses.append(loss.item())
-        plt.plot(losses);
-
-
-    plot(model=vsgp, plot_observed_data=True, plot_predictions=True)
+        plt.plot(losses)
+        plt.show()
+        plot(model=vsgp, plot_observed_data=True, plot_predictions=True)
