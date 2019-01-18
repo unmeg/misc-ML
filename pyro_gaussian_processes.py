@@ -2,6 +2,7 @@ from __future__ import print_function
 import os
 import matplotlib.pyplot as plt
 import torch
+import librosa
 
 import pyro
 import pyro.contrib.gp as gp
@@ -45,18 +46,40 @@ def plot(plot_observed_data=False, plot_predictions=False, n_prior_samples=0,
 
 if __name__ == '__main__':
 
-    N = 2500
-    X = dist.Uniform(0.0, 5.0).sample(sample_shape=(N,))
-    y = 0.5 * torch.sin(4*X) + dist.Normal(0.0, 0.3).sample(sample_shape=(N,))
+    # N = 2500
+    # X = dist.Uniform(0.0, 5.0).sample(sample_shape=(N,))
+    # y = 0.5 * torch.sin(4*X) + dist.Normal(0.0, 0.3).sample(sample_shape=(N,))
+
+    model_type = 2
+
+    # print(len(X))
+    # print(len(y))
+
+    X = librosa.load("/Users/meg/Documents/Programs/input.wav", sr=None)
+    y = librosa.load("/Users/meg/Documents/Programs/target.wav", sr=None)
+    
+    X_big, _ = librosa.load("input.wav", sr=None)
+    y_big, _ = librosa.load("target.wav", sr=None)
     model_type = 3
+
+
+    stoppo = 10*16000
+    X = X_big[0:stoppo]
+    y = y_big[0:stoppo]
+
+    N = len(y)
+
+    X = torch.from_numpy(X).float()
+    y = torch.from_numpy(y).float()
 
     plot(plot_observed_data=True)
 
     # initialize the inducing inputs
-    Xu = torch.arange(10.) / 2.0 
+    Xu = torch.arange(10.0).float() / 2.0  # same length as time?! THIS is learned throughout the sparse GP
 
     # initialize the kernel
     kernel = gp.kernels.Periodic(input_dim=1)
+    # kernel = gp.kernels.RBF(input_dim=1)
 
     # define the likelihood
     likelihood = gp.likelihoods.Gaussian() # TODO: check if correct initial likelihood?
